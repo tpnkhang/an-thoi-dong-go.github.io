@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AN THỚI ĐÔNG GO</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body class="bg-slate-50 pb-20">
+
+<!-- HEADER -->
+
+<div class="bg-blue-700 p-5 text-white text-center shadow-lg sticky top-0 z-50">
+
+<h1 class="text-xl font-bold uppercase">AN THỚI ĐÔNG GO</h1>
+
+<p class="text-xs opacity-80">Khám phá địa điểm – văn hóa – ẩm thực</p>
+
+</div>
+
+<!-- BẢN ĐỒ TỔNG QUAN -->
+
+<div class="px-4 mb-6">
+
+<h2 class="text-lg font-bold text-gray-800 mb-3">
+<i class="fa-solid fa-map-location-dot text-blue-600"></i>
+Bản đồ tổng quan
+</h2>
+
+<div class="rounded-2xl overflow-hidden border shadow-sm">
+
+<iframe
+src="https://www.google.com/maps/d/embed?mid=1vDOSUnnZ4j98hY-uKIjr_mTMpWzWOjY"
+width="100%"
+height="420"
+style="border:0"
+loading="lazy">
+</iframe>
+
+</div>
+
+</div>
+
+
+<!-- SEARCH -->
+
+<div class="p-4">
+
+<input
+id="search"
+placeholder="Tìm địa điểm..."
+class="w-full border rounded-xl p-3 text-sm"
+/>
+
+</div>
+
+
+<!-- FILTER -->
+
+<div id="filters" class="flex gap-2 px-4 overflow-x-auto pb-3"></div>
+
+
+<!-- CONTENT -->
+
+<div id="content" class="p-4 grid gap-5"></div>
+
+
+
+
+
+
+<script>
+
+
+
+
+// LINK CSV GOOGLE SHEETS
+
+const csvUrl =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_lOoy6mTZhXCSnGgvz18k0zTriwLrqIY5grUvF7T0MZBu7htU3U5RYK-bYhNySyxIHW_J6pHF4miK/pub?output=csv";
+
+
+let allData = [];
+let categories = new Set();
+
+
+
+// LOAD DATA
+
+async function loadData() {
+
+const res = await fetch(csvUrl);
+
+const text = await res.text();
+
+const rows = text.split("\n").slice(1);
+
+
+rows.forEach(row => {
+
+if (!row.trim()) return;
+
+const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+
+const name = cols[0];
+
+const type = cols[1];
+
+const gps = cols[2];
+
+const img = cols[3];
+
+const desc = cols[4];
+
+const phone = cols[5];
+
+
+categories.add(type);
+
+allData.push({
+
+name,
+
+type,
+
+gps,
+
+img,
+
+desc,
+
+phone
+
+});
+
+});
+
+
+renderFilters();
+
+render(allData);
+
+}
+
+
+
+// FILTER BUTTONS
+
+function renderFilters() {
+
+const div = document.getElementById("filters");
+
+let html = `
+<button onclick="render(allData)"
+class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+Tất cả
+</button>
+`;
+
+categories.forEach(c => {
+
+html += `
+<button onclick="filterData('${c}')"
+class="bg-white border px-4 py-1 rounded-full text-sm whitespace-nowrap">
+${c}
+</button>
+`;
+
+});
+
+div.innerHTML = html;
+
+}
+
+
+
+// FILTER DATA
+
+function filterData(type) {
+
+const data = allData.filter(i => i.type === type);
+
+render(data);
+
+}
+
+
+
+// SEARCH
+
+document.getElementById("search").addEventListener("input", function () {
+
+const keyword = this.value.toLowerCase();
+
+const data = allData.filter(i =>
+i.name.toLowerCase().includes(keyword)
+);
+
+render(data);
+
+});
+
+
+
+// RENDER
+function render(items) {
+
+const container = document.getElementById("content");
+
+container.innerHTML = items.map(i => {
+
+const mapLink = `https://www.google.com/maps?q=${i.gps}`;
+
+// tách nhiều ảnh
+const images = i.img ? i.img.split("|") : [];
+
+// ảnh chính
+const mainImage = images.length > 0
+? `<img src="${images[0]}" class="w-full h-44 object-cover">`
+: "";
+
+// gallery ảnh phụ
+const gallery = images.length > 1
+? `<div class="flex gap-2 p-2 overflow-x-auto">
+${images.slice(1).map(img =>
+`<img src="${img}" class="w-24 h-20 object-cover rounded">`
+).join("")}
+</div>`
+: "";
+
+const phoneButton =
+(i.phone && !i.phone.includes("Không") && !i.phone.includes("cập nhật"))
+?
+`<a href="tel:${i.phone}"
+class="mt-2 block bg-green-600 text-white text-center py-2 rounded-xl text-sm">
+<i class="fa-solid fa-phone"></i> Gọi điện
+</a>`
+:
+"";
+
+return `
+
+<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+
+${mainImage}
+
+<div class="p-4">
+
+<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold uppercase">
+${i.type}
+</span>
+
+<h3 class="text-lg font-bold text-gray-800 mt-2">
+${i.name}
+</h3>
+
+<p class="text-xs text-gray-500 mt-2">
+${i.desc}
+</p>
+
+</div>
+
+${gallery}
+
+<div class="px-4 pb-4">
+
+<a href="${mapLink}" target="_blank"
+class="block bg-blue-600 text-white text-center py-2 rounded-xl text-sm">
+
+<i class="fa-solid fa-location-arrow"></i>
+Chỉ đường
+
+</a>
+
+${phoneButton}
+
+</div>
+
+</div>
+
+`;
+
+}).join("");
+
+}
+
+
+
+loadData();
+
+</script>
+
+</body>
+
+</html>
