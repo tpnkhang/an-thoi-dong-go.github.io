@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/contribute", "destination": "/contribute.html" },
+    { "source": "/api/data", "destination": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_lOoy6mTZhXCSnGgvz18k0zTriwLrqIY5grUvF7T0MZBu7htU3U5RYK-bYhNySyxIHW_J6pHF4miK/pub?output=csv" }
+  ]
+}

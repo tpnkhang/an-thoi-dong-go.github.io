@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản trị - An Thới Đông Go</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen text-gray-800">
+
+    <div class="bg-teal-800 p-4 text-white flex justify-between items-center shadow-md sticky top-0 z-40">
+        <h1 class="font-bold text-lg flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved"></i> QUẢN TRỊ KIỂM DUYỆT
+        </h1>
+        <a href="/" class="text-sm hover:text-teal-200 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-house"></i> Về trang chủ
+        </a>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-4 mt-6 mb-10">
+        
+        <div id="login-section" class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-sm mx-auto mt-10">
+            <div class="text-center mb-6">
+                <div class="bg-teal-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-teal-700 text-2xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2 class="font-bold text-xl">Đăng nhập Quản trị</h2>
+            </div>
+            <input type="password" id="pass-input" class="w-full border border-gray-300 p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Nhập mật khẩu">
+            <button id="btn-login" onclick="checkPass()" class="w-full bg-teal-700 text-white py-3 rounded-xl font-bold hover:bg-teal-800 transition">Mở khóa hệ thống</button>
+        </div>
+
+        <div id="admin-section" class="hidden">
+            <div class="flex justify-between items-end mb-4 border-b pb-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-teal-900">Danh sách chờ duyệt</h2>
+                    <p class="text-sm text-gray-500 mt-1">Kiểm tra kỹ hình ảnh và tọa độ trước khi hiển thị lên web.</p>
+                </div>
+                <button onclick="location.reload()" class="bg-gray-200 text-gray-700 px-4 py-2 text-sm font-bold rounded-xl hover:bg-gray-300 transition">Đăng xuất</button>
+            </div>
+            
+            <div id="loading-container" class="text-center py-10 hidden">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-teal-600"></i>
+                <p id="loading-text" class="text-gray-500 text-sm mt-3 font-medium">Đang xử lý dữ liệu...</p>
+            </div>
+            
+            <div class="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-200">
+                <table class="w-full text-left border-collapse min-w-max">
+                    <thead class="bg-slate-100 border-b border-gray-200 text-gray-600">
+                        <tr>
+                            <th class="p-4 font-semibold w-1/3">Tên & Phân loại</th>
+                            <th class="p-4 font-semibold">Thông tin chi tiết & Hình ảnh</th>
+                            <th class="p-4 font-semibold text-center w-48">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-table" class="divide-y divide-gray-100 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <script>
+    const API_URL = "/api/auth";        
+        let validPassword = ""; // Biến lưu tạm mật khẩu sau khi đăng nhập thành công để gọi API
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-teal-600');
+            const icon = type === 'success' ? 'fa-check' : (type === 'error' ? 'fa-triangle-exclamation' : 'fa-info');
+            
+            toast.className = `${bgColor} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-y-0 opacity-100`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            showToast("Đã copy tọa độ GPS!", "info");
+        }
+
+        // ĐĂNG NHẬP (Giao tiếp với API Vercel để kiểm tra mật khẩu bảo mật)
+        async function checkPass() {
+            const btn = document.getElementById('btn-login');
+            const passInput = document.getElementById('pass-input').value;
+            if(!passInput) return showToast("Vui lòng nhập mật khẩu!", "error");
+
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực...`;
+            btn.disabled = true;
+
+            try {
+                // Thay SCRIPT_URL thành API_URL để gọi qua trạm trung gian bảo mật Vercel
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "get_pending", password: passInput })
+                });
+                const responseData = await res.json();
+
+                if (responseData.status === "error") {
+                    showToast(responseData.message || "Sai mật khẩu truy cập!", "error");
+                    btn.innerHTML = `Mở khóa hệ thống`;
+                    btn.disabled = false;
+                } else {
+                    validPassword = passInput; // Đăng nhập thành công, lưu lại pass để thực hiện duyệt/xóa sau đó
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('admin-section').classList.remove('hidden');
+                    renderTable(responseData.data);
+                    showToast("Đăng nhập thành công!", "success");
+                }
+            } catch(e) { 
+                showToast("Lỗi kết nối đến máy chủ!", "error"); 
+                btn.innerHTML = `Mở khóa hệ thống`;
+                btn.disabled = false;
+            }
+        }
+
+        // VẼ BẢNG DỮ LIỆU
+        function renderTable(data) {
+            if(!data || data.length === 0) {
+                document.getElementById('pending-table').innerHTML = `
+                    <tr><td colspan="3" class="p-8 text-center text-gray-500">
+                        <i class="fa-regular fa-folder-open text-4xl mb-2 text-gray-300 block"></i>
+                        Tuyệt vời! Không có yêu cầu nào đang chờ xử lý.
+                    </td></tr>`; 
+                return;
+            }
+
+            document.getElementById('pending-table').innerHTML = data.map(i => {
+                const imgPreview = i.img 
+                    ? `<img src="${i.img.split('|')[0]}" class="w-24 h-16 object-cover rounded-lg border shadow-sm">` 
+                    : `<div class="w-24 h-16 bg-gray-100 rounded-lg border flex items-center justify-center text-gray-400 text-xs text-center p-1">Không ảnh</div>`;
+                
+                return `
+                <tr class="hover:bg-teal-50/30 transition-colors group">
+                    <td class="p-4 align-top">
+                        <strong class="text-teal-800 block text-base">${i.name}</strong>
+                        <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs mt-1.5 inline-block font-medium">${i.type}</span>
+                    </td>
+                    <td class="p-4 align-top">
+                        <div class="flex gap-4">
+                            ${imgPreview}
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-600 mb-1">
+                                    <button onclick="copyText('${i.gps}')" class="hover:text-teal-600" title="Bấm để copy">
+                                        <i class="fa-solid fa-location-dot mr-1"></i> <strong>GPS:</strong> <span class="underline border-b border-dashed border-gray-400">${i.gps}</span>
+                                    </button>
+                                    <span class="mx-2">|</span> 
+                                    <i class="fa-solid fa-phone mr-1"></i> <strong>SĐT:</strong> ${i.phone || 'N/A'}
+                                </p>
+                                <p class="text-sm text-gray-700 line-clamp-2 mt-1" title="${i.desc}">${i.desc}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4 align-middle text-center space-x-2">
+                        <button id="btn-approve-${i.rowId}" onclick="processAction('approve', ${i.rowId})" class="bg-green-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-600 transition shadow-sm text-sm">
+                            <i class="fa-solid fa-check"></i> Duyệt
+                        </button>
+                        <button id="btn-reject-${i.rowId}" onclick="processAction('reject', ${i.rowId})" class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-red-600 transition shadow-sm text-sm">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `}).join("");
+        }
+
+        // TẢI LẠI DỮ LIỆU SAU KHI DUYỆT/XÓA
+        async function reloadData() {
+            document.getElementById('pending-table').innerHTML = "";
+            document.getElementById('loading-container').classList.remove('hidden');
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "get_pending", password: validPassword })
+                });
+                const responseData = await res.json();
+                document.getElementById('loading-container').classList.add('hidden');
+                renderTable(responseData.data);
+            } catch(e) { showToast("Lỗi tải lại dữ liệu", "error"); }
+        }
+
+        // HÀNH ĐỘNG DUYỆT / XÓA
+        async function processAction(actionType, rowId) {
+            const confirmMsg = actionType === 'approve' ? "Chính thức DUYỆT địa điểm này?" : "Từ chối và XÓA BỎ yêu cầu này?";
+            if(!confirm(confirmMsg)) return;
+
+            const btnApprove = document.getElementById(`btn-approve-${rowId}`);
+            const btnReject = document.getElementById(`btn-reject-${rowId}`);
+            if(btnApprove) { btnApprove.disabled = true; btnApprove.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btnApprove.classList.add('opacity-50'); }
+            if(btnReject) { btnReject.disabled = true; btnReject.classList.add('opacity-50'); }
+
+            showToast("Đang xử lý...", "info");
+
+            try {
+                await fetch(SCRIPT_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: actionType, rowId: rowId, password: validPassword }) 
+                });
+                showToast(actionType === 'approve' ? "Đã duyệt thành công!" : "Đã xóa yêu cầu!", "success");
+                reloadData();
+            } catch(e) { 
+                showToast("Đã xử lý thành công!", "success");
+                reloadData(); 
+            }
+        }
+    </script>
+</body>
+</html>

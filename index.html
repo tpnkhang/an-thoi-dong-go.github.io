@@ -1,94 +1,132 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AN THỚI ĐÔNG GO</title>
+    <title>AN THỚI ĐÔNG GO - Cẩm nang du lịch</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        /* Tùy chỉnh thanh cuộn ẩn cho mượt mà trên mobile */
+        /* Ẩn thanh cuộn nhưng vẫn cho phép vuốt ngang */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
-<body class="bg-slate-50 pb-20 font-sans">
+<body class="bg-slate-50 pb-24 font-sans text-gray-800 relative">
 
-    <div class="bg-blue-700 p-4 text-white text-center shadow-md sticky top-0 z-50">
-        <h1 class="text-xl font-extrabold tracking-wide uppercase">An Thới Đông Go</h1>
-        <p class="text-xs font-light mt-1 opacity-90">Khám phá địa điểm – văn hóa – ẩm thực</p>
-    </div>
-
-    <div class="p-4 mb-2 mt-2">
-        <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot text-blue-600"></i>
-            Bản đồ tổng quan
-        </h2>
+    <div class="bg-teal-700 p-5 text-white text-center shadow-lg sticky top-0 z-50 rounded-b-3xl relative">
+        <h1 class="text-2xl font-extrabold tracking-wide flex justify-center items-center gap-2">
+            <i class="fa-brands fa-envira text-green-300"></i> AN THỚI ĐÔNG GO
+        </h1>
+        <p class="text-xs font-light mt-1.5 opacity-90">Trải nghiệm sinh thái & Văn hóa Cần Giờ</p>
         
-        <div class="rounded-2xl overflow-hidden border shadow-sm bg-gray-200 h-[350px]">
-            <div class="-mt-[56px] w-full h-[calc(100%+56px)]">
-                <iframe
-                    src="https://www.google.com/maps/d/embed?mid=1vDOSUnnZ4j98hY-uKIjr_mTMpWzWOjY"
-                    width="100%"
-                    height="100%"
-                    style="border:0"
-                    loading="lazy">
-                </iframe>
-            </div>
-        </div>
+        <a href="/admin" class="absolute right-5 top-6 text-teal-200 hover:text-white transition-colors" title="Khu vực Quản trị">
+            <i class="fa-solid fa-shield-halved text-xl"></i>
+        </a>
     </div>
 
-    <div class="px-4 mb-4 sticky top-[72px] z-40 bg-slate-50 py-2">
-        <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+    <div class="px-4 mt-6 mb-4">
+        <div class="relative shadow-sm rounded-2xl">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-teal-600"></i>
             <input
                 id="search"
                 type="text"
-                placeholder="Tìm tên địa điểm, món ăn..."
-                class="w-full border border-gray-300 rounded-2xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
+                placeholder="Bạn muốn đi đâu, ăn gì?..."
+                class="w-full border-0 ring-1 ring-gray-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all"
             />
         </div>
     </div>
 
-    <div id="filters" class="flex gap-2 px-4 overflow-x-auto pb-4 no-scrollbar">
-        </div>
-
-    <div id="loading" class="text-center py-10">
-        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600"></i>
-        <p class="text-gray-500 text-sm mt-3 font-medium">Đang đồng bộ dữ liệu...</p>
+    <div id="filters" class="flex gap-3 px-4 overflow-x-auto pb-4 pt-1 no-scrollbar items-center">
     </div>
 
-    <div id="content" class="px-4 grid gap-5">
+    <div class="px-4 mb-6">
+        <h2 class="text-base font-bold text-teal-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot text-teal-600"></i>
+            Khám phá trên bản đồ
+        </h2>
+        <div id="map" class="rounded-3xl overflow-hidden border border-gray-200 shadow-md h-[300px] z-10 relative bg-gray-100"></div>
+    </div>
+
+    <div class="px-4 mb-3 flex justify-between items-end">
+        <h2 class="text-base font-bold text-teal-800">Địa điểm gợi ý</h2>
+        <span id="result-count" class="text-xs text-gray-500 font-medium"></span>
+    </div>
+
+    <div id="content" class="px-4 grid gap-6">
+        <div id="loading" class="text-center py-10">
+            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-teal-600"></i>
+            <p class="text-gray-500 text-sm mt-3 font-medium">Đang chuẩn bị hành trang...</p>
         </div>
+    </div>
+
+    <a href="/contribute" class="fixed bottom-6 right-6 bg-orange-500 text-white px-5 py-3 rounded-full shadow-lg hover:bg-orange-600 transition-transform transform hover:scale-105 z-50 flex items-center justify-center gap-2 font-bold text-sm border-2 border-white">
+        <i class="fa-solid fa-pen-to-square"></i> Đóng góp
+    </a>
 
     <script>
-        // LINK CSV GOOGLE SHEETS
-        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_lOoy6mTZhXCSnGgvz18k0zTriwLrqIY5grUvF7T0MZBu7htU3U5RYK-bYhNySyxIHW_J6pHF4miK/pub?output=csv";
-
+        const csvUrl = "/api/data";
         let allData = [];
         let categories = new Set();
         let currentFilter = 'Tất cả';
 
-        // HÀM LÀM SẠCH DỮ LIỆU CSV (XÓA DẤU NGOẶC KÉP)
+        let map, markersGroup;
+
+        // HÀM CHỌN ICON TỰ ĐỘNG CHO DANH MỤC
+        function getIconForCategory(catName) {
+            const name = catName.toLowerCase();
+            if (name.includes('ẩm thực') || name.includes('ăn uống') || name.includes('đặc sản')) return 'fa-utensils';
+            if (name.includes('du lịch') || name.includes('tham quan') || name.includes('check-in')) return 'fa-camera-retro';
+            if (name.includes('lưu trú') || name.includes('homestay') || name.includes('khách sạn')) return 'fa-bed';
+            if (name.includes('văn hóa') || name.includes('tâm linh') || name.includes('chùa')) return 'fa-vihara';
+            if (name.includes('hành chính') || name.includes('cơ quan')) return 'fa-building-flag';
+            if (name.includes('giáo dục') || name.includes('trường')) return 'fa-school';
+            if (name.includes('giao thông') || name.includes('bến')) return 'fa-ship';
+            return 'fa-location-dot';
+        }
+
+        // KHỞI TẠO BẢN ĐỒ
+        function initMap() {
+            map = L.map('map').setView([10.536, 106.825], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            markersGroup = L.layerGroup().addTo(map);
+        }
+
+        function parseGPS(gpsStr) {
+            if (!gpsStr) return null;
+            const parts = gpsStr.split(',').map(p => parseFloat(p.trim()));
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return [parts[0], parts[1]];
+            return null;
+        }
+
         function cleanCSVString(str) {
             if (!str) return "";
             return str.replace(/^"|"$/g, '').trim();
         }
 
-        // LOAD DATA TỪ GOOGLE SHEETS
+        // LOAD DATA
         async function loadData() {
             try {
+                initMap();
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split("\n").slice(1);
 
                 rows.forEach(row => {
                     if (!row.trim()) return;
-                    
-                    // Regex xử lý tách CSV an toàn, bỏ qua dấu phẩy nằm trong ngoặc kép
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if(cols.length < 6) return;
+                    if (cols.length < 6) return;
 
                     const name = cleanCSVString(cols[0]);
                     const type = cleanCSVString(cols[1]);
@@ -96,122 +134,142 @@
                     const img = cleanCSVString(cols[3]);
                     const desc = cleanCSVString(cols[4]);
                     const phone = cleanCSVString(cols[5]);
-                    
-                    if(type) categories.add(type);
+
+                    if (type) categories.add(type);
                     allData.push({ name, type, gps, img, desc, phone });
                 });
 
-                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('loading').style.display = 'none';
                 renderFilters();
                 render(allData);
             } catch (error) {
-                console.error("Lỗi khi tải dữ liệu:", error);
-                document.getElementById('loading').innerHTML = `
-                    <p class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Lỗi kết nối máy chủ</p>
-                    <p class="text-xs text-gray-500 mt-1">Vui lòng kiểm tra mạng hoặc thử lại sau.</p>
-                `;
+                document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Lỗi tải dữ liệu!</p>`;
             }
         }
 
-        // RENDER CÁC NÚT BỘ LỌC
+        // RENDER BỘ LỌC
         function renderFilters() {
             const div = document.getElementById("filters");
-            let html = createFilterBtn('Tất cả');
-            categories.forEach(c => { html += createFilterBtn(c); });
+            let html = createFilterBtn('Tất cả', 'fa-compass');
+            
+            categories.forEach(c => {
+                html += createFilterBtn(c, getIconForCategory(c));
+            });
             div.innerHTML = html;
         }
 
-        function createFilterBtn(type) {
-            const isActive = type === currentFilter;
-            const baseClass = "px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm border";
-            const activeClass = isActive 
-                ? "bg-blue-600 text-white border-blue-600" 
+        function createFilterBtn(type, iconClass) {
+            const isActive = currentFilter === type;
+            const activeClasses = isActive 
+                ? "bg-teal-600 text-white shadow-md border-teal-600" 
                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50";
-            return `<button onclick="applyFilter('${type}')" class="${baseClass} ${activeClass}">${type}</button>`;
+            
+            return `
+                <button onclick="applyFilter('${type}')"
+                class="flex items-center gap-2 border px-5 py-2 rounded-2xl text-sm font-semibold whitespace-nowrap transition-all ${activeClasses}">
+                    <i class="fa-solid ${iconClass}"></i> ${type}
+                </button>
+            `;
         }
 
-        // ÁP DỤNG BỘ LỌC VÀ TÌM KIẾM
         function applyFilter(type) {
             currentFilter = type;
-            renderFilters(); 
-            
+            renderFilters();
+
             const keyword = document.getElementById("search").value.toLowerCase();
             let filteredData = allData;
-            
-            if (type !== 'Tất cả') {
-                filteredData = filteredData.filter(i => i.type === type);
-            }
+
+            if (type !== 'Tất cả') filteredData = filteredData.filter(i => i.type === type);
             if (keyword) {
-                filteredData = filteredData.filter(i => 
-                    i.name.toLowerCase().includes(keyword) || 
-                    (i.desc && i.desc.toLowerCase().includes(keyword))
+                filteredData = filteredData.filter(i =>
+                    i.name.toLowerCase().includes(keyword) || (i.desc && i.desc.toLowerCase().includes(keyword))
                 );
             }
-            
             render(filteredData);
         }
 
-        // SỰ KIỆN TÌM KIẾM
         document.getElementById("search").addEventListener("input", function () {
             applyFilter(currentFilter);
         });
 
-        // RENDER DANH SÁCH ĐỊA ĐIỂM
+        // RENDER DANH SÁCH & MAP
         function render(items) {
             const container = document.getElementById("content");
-            
+            document.getElementById("result-count").innerText = `${items.length} địa điểm`;
+
+            markersGroup.clearLayers();
+            const validLatLngs = [];
+
+            items.forEach(i => {
+                const coords = parseGPS(i.gps);
+                if (coords) {
+                    validLatLngs.push(coords);
+                    const marker = L.marker(coords).addTo(markersGroup);
+                    
+                    const popupContent = `
+                        <div class="text-center pb-1">
+                            <strong class="text-teal-700 text-sm block mb-1">${i.name}</strong>
+                            <span class="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold uppercase border border-teal-100">${i.type}</span>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                }
+            });
+
+            if (validLatLngs.length === 1) {
+                map.setView(validLatLngs[0], 16, { animate: true });
+            } else if (validLatLngs.length > 1) {
+                map.fitBounds(L.latLngBounds(validLatLngs), { padding: [30, 30], animate: true });
+            }
+
             if (items.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-300">
-                        <i class="fa-regular fa-folder-open text-4xl text-gray-300 mb-2"></i>
-                        <p class="text-gray-500 text-sm">Không tìm thấy địa điểm phù hợp.</p>
+                    <div class="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-300">
+                        <i class="fa-solid fa-route text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 text-sm">Chưa tìm thấy địa điểm phù hợp.</p>
                     </div>`;
                 return;
             }
 
             container.innerHTML = items.map(i => {
                 const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(i.gps)}`;
-                
                 const images = i.img ? i.img.split("|").map(img => img.trim()) : [];
-                const mainImage = images.length > 0 
-                    ? `<img src="${images[0]}" class="w-full h-48 object-cover transition-transform duration-500 hover:scale-105" loading="lazy" alt="${i.name}">` 
-                    : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400"><i class="fa-regular fa-image text-3xl"></i></div>`;
+                
+                const mainImage = images.length > 0
+                    ? `<img src="${images[0]}" class="w-full h-52 object-cover" loading="lazy" alt="${i.name}">`
+                    : `<div class="w-full h-52 bg-teal-50 flex items-center justify-center text-teal-300"><i class="fa-solid fa-image text-4xl"></i></div>`;
 
-                const gallery = images.length > 1 
-                    ? `<div class="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t">
-                        ${images.slice(1).map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-lg shadow-sm border" loading="lazy">`).join("")}
-                       </div>` 
+                const gallery = images.length > 1
+                    ? `<div class="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t border-gray-100">
+                        ${images.slice(1).map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-xl shadow-sm border border-gray-100" loading="lazy">`).join("")}
+                       </div>`
                     : "";
 
-                const phoneValid = i.phone && !i.phone.toLowerCase().includes("không") && !i.phone.toLowerCase().includes("cập nhật");
+                const phoneValid = (i.phone && !i.phone.toLowerCase().includes("không") && !i.phone.toLowerCase().includes("cập nhật"));
                 const phoneButton = phoneValid
-                    ? `<a href="tel:${i.phone.replace(/\s+/g, '')}" class="flex-1 bg-green-50 text-green-700 border border-green-200 text-center py-2.5 rounded-xl text-sm font-bold hover:bg-green-100 transition-colors">
-                        <i class="fa-solid fa-phone mr-1"></i> Gọi ngay
+                    ? `<a href="tel:${i.phone.replace(/\s/g, '')}" class="flex-1 bg-orange-50 text-orange-600 border border-orange-200 text-center py-2.5 rounded-xl text-sm font-bold hover:bg-orange-100 transition shadow-sm">
+                        <i class="fa-solid fa-phone-volume mr-1"></i> Gọi ngay
                        </a>`
                     : "";
 
                 return `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
-                    <div class="overflow-hidden relative">
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="relative">
                         ${mainImage}
-                        <span class="absolute top-3 left-3 text-[10px] bg-white/90 backdrop-blur text-blue-700 px-2.5 py-1 rounded-full font-bold uppercase shadow-sm">
-                            ${i.type}
-                        </span>
+                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-teal-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                            <i class="fa-solid ${getIconForCategory(i.type)}"></i> ${i.type}
+                        </div>
                     </div>
                     
-                    <div class="p-4">
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-2">
-                            ${i.name}
-                        </h3>
-                        <p class="text-sm text-gray-600 mt-2 line-clamp-3 leading-relaxed">
-                            ${i.desc}
-                        </p>
+                    <div class="p-5 pb-3">
+                        <h3 class="text-lg font-bold text-gray-900 leading-tight">${i.name}</h3>
+                        <p class="text-sm text-gray-500 mt-2 line-clamp-3 leading-relaxed">${i.desc}</p>
                     </div>
 
                     ${gallery}
 
-                    <div class="px-4 pb-4 flex gap-3 mt-1">
-                        <a href="${mapLink}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-blue-600 text-white text-center py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                    <div class="px-5 pb-5 flex gap-3 mt-1">
+                        <a href="${mapLink}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-teal-600 text-white text-center py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 transition shadow-sm">
                             <i class="fa-solid fa-location-arrow mr-1"></i> Chỉ đường
                         </a>
                         ${phoneButton}
@@ -221,7 +279,6 @@
             }).join("");
         }
 
-        // Khởi chạy
         loadData();
     </script>
 </body>
