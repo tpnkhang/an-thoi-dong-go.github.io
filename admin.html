@@ -97,11 +97,11 @@
             btn.disabled = true;
 
             try {
-                // Thay SCRIPT_URL thành API_URL để gọi qua trạm trung gian bảo mật Vercel
                 const res = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "get_pending", password: passInput })
+                    body: JSON.stringify({ action: "get_pending", password: encodeURIComponent(passInput) 
+})
                 });
                 const responseData = await res.json();
 
