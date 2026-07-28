@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const { password, action, rowId } = req.body;
     
     // 1. Kiểm tra mật khẩu so với biến môi trường trên Vercel
-    if (password !== process.env.ADMIN_PASSWORD) {
+    if (password !== process.env.ADMIN_HASH) {
       return res.status(200).json({ status: 'error', message: 'Sai mật khẩu quản trị!' });
     }
 
