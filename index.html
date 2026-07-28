@@ -1,304 +1,228 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>AN THỚI ĐÔNG GO</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AN THỚI ĐÔNG GO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* Tùy chỉnh thanh cuộn ẩn cho mượt mà trên mobile */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 
-<body class="bg-slate-50 pb-20">
-
-<!-- HEADER -->
-
-<div class="bg-blue-700 p-5 text-white text-center shadow-lg sticky top-0 z-50">
-
-<h1 class="text-xl font-bold uppercase">AN THỚI ĐÔNG GO</h1>
-
-<p class="text-xs opacity-80">Khám phá địa điểm – văn hóa – ẩm thực</p>
-
-</div>
-
-<!-- BẢN ĐỒ TỔNG QUAN -->
-
-<div class="px-4 mb-6">
-
-<h2 class="text-lg font-bold text-gray-800 mb-3">
-<i class="fa-solid fa-map-location-dot text-blue-600"></i>
-Bản đồ tổng quan
-</h2>
-
-<div class="rounded-2xl overflow-hidden border shadow-sm">
-
-<iframe
-src="https://www.google.com/maps/d/embed?mid=1vDOSUnnZ4j98hY-uKIjr_mTMpWzWOjY"
-width="100%"
-height="420"
-style="border:0"
-loading="lazy">
-</iframe>
-
-</div>
-
-</div>
-
-
-<!-- SEARCH -->
-
-<div class="p-4">
-
-<input
-id="search"
-placeholder="Tìm địa điểm..."
-class="w-full border rounded-xl p-3 text-sm"
-/>
-
-</div>
-
-
-<!-- FILTER -->
-
-<div id="filters" class="flex gap-2 px-4 overflow-x-auto pb-3"></div>
-
-
-<!-- CONTENT -->
-
-<div id="content" class="p-4 grid gap-5"></div>
-
-
-
-
-
-
-<script>
-
-
-
-
-// LINK CSV GOOGLE SHEETS
-
-const csvUrl =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_lOoy6mTZhXCSnGgvz18k0zTriwLrqIY5grUvF7T0MZBu7htU3U5RYK-bYhNySyxIHW_J6pHF4miK/pub?output=csv";
-
-
-let allData = [];
-let categories = new Set();
-
-
-
-// LOAD DATA
-
-async function loadData() {
-
-const res = await fetch(csvUrl);
-
-const text = await res.text();
-
-const rows = text.split("\n").slice(1);
-
-
-rows.forEach(row => {
-
-if (!row.trim()) return;
-
-const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-
-
-const name = cols[0];
-
-const type = cols[1];
-
-const gps = cols[2];
-
-const img = cols[3];
-
-const desc = cols[4];
-
-const phone = cols[5];
-
-
-categories.add(type);
-
-allData.push({
-
-name,
-
-type,
-
-gps,
-
-img,
-
-desc,
-
-phone
-
-});
-
-});
-
-
-renderFilters();
-
-render(allData);
-
-}
-
-
-
-// FILTER BUTTONS
-
-function renderFilters() {
-
-const div = document.getElementById("filters");
-
-let html = `
-<button onclick="render(allData)"
-class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm font-bold whitespace-nowrap">
-Tất cả
-</button>
-`;
-
-categories.forEach(c => {
-
-html += `
-<button onclick="filterData('${c}')"
-class="bg-white border px-4 py-1 rounded-full text-sm whitespace-nowrap">
-${c}
-</button>
-`;
-
-});
-
-div.innerHTML = html;
-
-}
-
-
-
-// FILTER DATA
-
-function filterData(type) {
-
-const data = allData.filter(i => i.type === type);
-
-render(data);
-
-}
-
-
-
-// SEARCH
-
-document.getElementById("search").addEventListener("input", function () {
-
-const keyword = this.value.toLowerCase();
-
-const data = allData.filter(i =>
-i.name.toLowerCase().includes(keyword)
-);
-
-render(data);
-
-});
-
-
-
-// RENDER
-function render(items) {
-
-const container = document.getElementById("content");
-
-container.innerHTML = items.map(i => {
-
-const mapLink = `https://www.google.com/maps?q=${i.gps}`;
-
-// tách nhiều ảnh
-const images = i.img ? i.img.split("|") : [];
-
-// ảnh chính
-const mainImage = images.length > 0
-? `<img src="${images[0]}" class="w-full h-44 object-cover">`
-: "";
-
-// gallery ảnh phụ
-const gallery = images.length > 1
-? `<div class="flex gap-2 p-2 overflow-x-auto">
-${images.slice(1).map(img =>
-`<img src="${img}" class="w-24 h-20 object-cover rounded">`
-).join("")}
-</div>`
-: "";
-
-const phoneButton =
-(i.phone && !i.phone.includes("Không") && !i.phone.includes("cập nhật"))
-?
-`<a href="tel:${i.phone}"
-class="mt-2 block bg-green-600 text-white text-center py-2 rounded-xl text-sm">
-<i class="fa-solid fa-phone"></i> Gọi điện
-</a>`
-:
-"";
-
-return `
-
-<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-
-${mainImage}
-
-<div class="p-4">
-
-<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold uppercase">
-${i.type}
-</span>
-
-<h3 class="text-lg font-bold text-gray-800 mt-2">
-${i.name}
-</h3>
-
-<p class="text-xs text-gray-500 mt-2">
-${i.desc}
-</p>
-
-</div>
-
-${gallery}
-
-<div class="px-4 pb-4">
-
-<a href="${mapLink}" target="_blank"
-class="block bg-blue-600 text-white text-center py-2 rounded-xl text-sm">
-
-<i class="fa-solid fa-location-arrow"></i>
-Chỉ đường
-
-</a>
-
-${phoneButton}
-
-</div>
-
-</div>
-
-`;
-
-}).join("");
-
-}
-
-
-
-loadData();
-
-</script>
-
+<body class="bg-slate-50 pb-20 font-sans">
+
+    <div class="bg-blue-700 p-4 text-white text-center shadow-md sticky top-0 z-50">
+        <h1 class="text-xl font-extrabold tracking-wide uppercase">An Thới Đông Go</h1>
+        <p class="text-xs font-light mt-1 opacity-90">Khám phá địa điểm – văn hóa – ẩm thực</p>
+    </div>
+
+    <div class="p-4 mb-2 mt-2">
+        <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+            Bản đồ tổng quan
+        </h2>
+        
+        <div class="rounded-2xl overflow-hidden border shadow-sm bg-gray-200 h-[350px]">
+            <div class="-mt-[56px] w-full h-[calc(100%+56px)]">
+                <iframe
+                    src="https://www.google.com/maps/d/embed?mid=1vDOSUnnZ4j98hY-uKIjr_mTMpWzWOjY"
+                    width="100%"
+                    height="100%"
+                    style="border:0"
+                    loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-4 mb-4 sticky top-[72px] z-40 bg-slate-50 py-2">
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input
+                id="search"
+                type="text"
+                placeholder="Tìm tên địa điểm, món ăn..."
+                class="w-full border border-gray-300 rounded-2xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
+            />
+        </div>
+    </div>
+
+    <div id="filters" class="flex gap-2 px-4 overflow-x-auto pb-4 no-scrollbar">
+        </div>
+
+    <div id="loading" class="text-center py-10">
+        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600"></i>
+        <p class="text-gray-500 text-sm mt-3 font-medium">Đang đồng bộ dữ liệu...</p>
+    </div>
+
+    <div id="content" class="px-4 grid gap-5">
+        </div>
+
+    <script>
+        // LINK CSV GOOGLE SHEETS
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_lOoy6mTZhXCSnGgvz18k0zTriwLrqIY5grUvF7T0MZBu7htU3U5RYK-bYhNySyxIHW_J6pHF4miK/pub?output=csv";
+
+        let allData = [];
+        let categories = new Set();
+        let currentFilter = 'Tất cả';
+
+        // HÀM LÀM SẠCH DỮ LIỆU CSV (XÓA DẤU NGOẶC KÉP)
+        function cleanCSVString(str) {
+            if (!str) return "";
+            return str.replace(/^"|"$/g, '').trim();
+        }
+
+        // LOAD DATA TỪ GOOGLE SHEETS
+        async function loadData() {
+            try {
+                const res = await fetch(csvUrl);
+                const text = await res.text();
+                const rows = text.split("\n").slice(1);
+
+                rows.forEach(row => {
+                    if (!row.trim()) return;
+                    
+                    // Regex xử lý tách CSV an toàn, bỏ qua dấu phẩy nằm trong ngoặc kép
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(cols.length < 6) return;
+
+                    const name = cleanCSVString(cols[0]);
+                    const type = cleanCSVString(cols[1]);
+                    const gps = cleanCSVString(cols[2]);
+                    const img = cleanCSVString(cols[3]);
+                    const desc = cleanCSVString(cols[4]);
+                    const phone = cleanCSVString(cols[5]);
+                    
+                    if(type) categories.add(type);
+                    allData.push({ name, type, gps, img, desc, phone });
+                });
+
+                document.getElementById('loading').classList.add('hidden');
+                renderFilters();
+                render(allData);
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu:", error);
+                document.getElementById('loading').innerHTML = `
+                    <p class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Lỗi kết nối máy chủ</p>
+                    <p class="text-xs text-gray-500 mt-1">Vui lòng kiểm tra mạng hoặc thử lại sau.</p>
+                `;
+            }
+        }
+
+        // RENDER CÁC NÚT BỘ LỌC
+        function renderFilters() {
+            const div = document.getElementById("filters");
+            let html = createFilterBtn('Tất cả');
+            categories.forEach(c => { html += createFilterBtn(c); });
+            div.innerHTML = html;
+        }
+
+        function createFilterBtn(type) {
+            const isActive = type === currentFilter;
+            const baseClass = "px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm border";
+            const activeClass = isActive 
+                ? "bg-blue-600 text-white border-blue-600" 
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50";
+            return `<button onclick="applyFilter('${type}')" class="${baseClass} ${activeClass}">${type}</button>`;
+        }
+
+        // ÁP DỤNG BỘ LỌC VÀ TÌM KIẾM
+        function applyFilter(type) {
+            currentFilter = type;
+            renderFilters(); 
+            
+            const keyword = document.getElementById("search").value.toLowerCase();
+            let filteredData = allData;
+            
+            if (type !== 'Tất cả') {
+                filteredData = filteredData.filter(i => i.type === type);
+            }
+            if (keyword) {
+                filteredData = filteredData.filter(i => 
+                    i.name.toLowerCase().includes(keyword) || 
+                    (i.desc && i.desc.toLowerCase().includes(keyword))
+                );
+            }
+            
+            render(filteredData);
+        }
+
+        // SỰ KIỆN TÌM KIẾM
+        document.getElementById("search").addEventListener("input", function () {
+            applyFilter(currentFilter);
+        });
+
+        // RENDER DANH SÁCH ĐỊA ĐIỂM
+        function render(items) {
+            const container = document.getElementById("content");
+            
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-300">
+                        <i class="fa-regular fa-folder-open text-4xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-500 text-sm">Không tìm thấy địa điểm phù hợp.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = items.map(i => {
+                const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(i.gps)}`;
+                
+                const images = i.img ? i.img.split("|").map(img => img.trim()) : [];
+                const mainImage = images.length > 0 
+                    ? `<img src="${images[0]}" class="w-full h-48 object-cover transition-transform duration-500 hover:scale-105" loading="lazy" alt="${i.name}">` 
+                    : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400"><i class="fa-regular fa-image text-3xl"></i></div>`;
+
+                const gallery = images.length > 1 
+                    ? `<div class="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t">
+                        ${images.slice(1).map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-lg shadow-sm border" loading="lazy">`).join("")}
+                       </div>` 
+                    : "";
+
+                const phoneValid = i.phone && !i.phone.toLowerCase().includes("không") && !i.phone.toLowerCase().includes("cập nhật");
+                const phoneButton = phoneValid
+                    ? `<a href="tel:${i.phone.replace(/\s+/g, '')}" class="flex-1 bg-green-50 text-green-700 border border-green-200 text-center py-2.5 rounded-xl text-sm font-bold hover:bg-green-100 transition-colors">
+                        <i class="fa-solid fa-phone mr-1"></i> Gọi ngay
+                       </a>`
+                    : "";
+
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
+                    <div class="overflow-hidden relative">
+                        ${mainImage}
+                        <span class="absolute top-3 left-3 text-[10px] bg-white/90 backdrop-blur text-blue-700 px-2.5 py-1 rounded-full font-bold uppercase shadow-sm">
+                            ${i.type}
+                        </span>
+                    </div>
+                    
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-2">
+                            ${i.name}
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2 line-clamp-3 leading-relaxed">
+                            ${i.desc}
+                        </p>
+                    </div>
+
+                    ${gallery}
+
+                    <div class="px-4 pb-4 flex gap-3 mt-1">
+                        <a href="${mapLink}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-blue-600 text-white text-center py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                            <i class="fa-solid fa-location-arrow mr-1"></i> Chỉ đường
+                        </a>
+                        ${phoneButton}
+                    </div>
+                </div>
+                `;
+            }).join("");
+        }
+
+        // Khởi chạy
+        loadData();
+    </script>
 </body>
-
 </html>
