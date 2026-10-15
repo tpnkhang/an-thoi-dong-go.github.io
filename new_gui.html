@@ -1,285 +1,879 @@
+
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AN THỚI ĐÔNG GO - Cẩm nang du lịch</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="Cẩm nang khám phá thiên nhiên, văn hóa và ẩm thực An Thới Đông, Cần Giờ.">
+  <title>AN THỚI ĐÔNG GO — Chạm vào thiên nhiên</title>
 
-    <style>
-        /* Ẩn thanh cuộn nhưng vẫn cho phép vuốt ngang */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: {
+              50: '#edf5ef',
+              100: '#d9e9dd',
+              500: '#38745b',
+              600: '#285e49',
+              700: '#214d3e',
+              800: '#173f35',
+              900: '#102f28'
+            },
+            sand: '#f7f6f0',
+            clay: '#dc8057'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          },
+          boxShadow: {
+            soft: '0 10px 35px rgba(23, 63, 53, .07)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+    .hero-bg {
+      background:
+        linear-gradient(90deg, rgba(12, 42, 33, .86) 0%,
+        rgba(12, 42, 33, .56) 52%,
+        rgba(12, 42, 33, .12) 100%),
+        url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1800&q=85')
+        center 48% / cover;
+    }
+
+    .filter-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 17px;
+      border-radius: 999px;
+      border: 1px solid #e5e7df;
+      background: white;
+      color: #5d685f;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all .2s ease;
+    }
+
+    .filter-btn:hover {
+      border-color: #38745b;
+      color: #285e49;
+      transform: translateY(-1px);
+    }
+
+    .filter-btn.active {
+      background: #214d3e;
+      color: white;
+      border-color: #214d3e;
+      box-shadow: 0 5px 15px rgba(33, 77, 62, .15);
+    }
+
+    .place-card {
+      background: white;
+      border: 1px solid #e9ece5;
+      border-radius: 22px;
+      overflow: hidden;
+      transition: transform .25s ease, box-shadow .25s ease;
+      min-width: 0;
+    }
+
+    .place-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(23, 63, 53, .10);
+    }
+
+    .place-cover {
+      position: relative;
+      height: 220px;
+      overflow: hidden;
+      background: #e4eee5;
+    }
+
+    .place-cover > img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .6s ease;
+    }
+
+    .place-card:hover .place-cover > img {
+      transform: scale(1.045);
+    }
+
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    #map {
+      height: 390px;
+      z-index: 1;
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 14px;
+    }
+
+    .leaflet-popup-content {
+      margin: 13px 16px;
+      line-height: 1.6;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #edf0e9 25%, #f7f8f4 50%, #edf0e9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      to { background-position: -200% 0; }
+    }
+
+    @media (max-width: 640px) {
+      .hero-bg {
+        background-position: 58% center;
+      }
+
+      #map { height: 300px; }
+
+      .place-cover { height: 210px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
 </head>
 
-<body class="bg-slate-50 pb-24 font-sans text-gray-800 relative">
+<body class="bg-sand text-gray-800 antialiased">
 
-    <div class="bg-teal-700 p-5 text-white text-center shadow-lg sticky top-0 z-50 rounded-b-3xl relative">
-        <h1 class="text-2xl font-extrabold tracking-wide flex justify-center items-center gap-2">
-            <i class="fa-brands fa-envira text-green-300"></i> AN THỚI ĐÔNG GO
-        </h1>
-        <p class="text-xs font-light mt-1.5 opacity-90">Trải nghiệm sinh thái & Văn hóa Cần Giờ</p>
-        
-        <a href="/admin" class="absolute right-5 top-6 text-teal-200 hover:text-white transition-colors" title="Khu vực Quản trị">
-            <i class="fa-solid fa-shield-halved text-xl"></i>
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="h-[76px] flex items-center justify-between gap-4">
+        <a href="/" class="flex items-center gap-3 min-w-0">
+          <div class="w-11 h-11 rounded-2xl bg-forest-800 text-white flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-leaf text-lg"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[17px] sm:text-lg font-extrabold tracking-tight text-forest-800">
+              AN THỚI ĐÔNG <span class="text-clay">GO</span>
+            </div>
+            <div class="text-[10px] sm:text-[11px] text-gray-500 tracking-[1.5px] uppercase">
+              Local travel guide
+            </div>
+          </div>
         </a>
-    </div>
 
-    <div class="px-4 mt-6 mb-4">
-        <div class="relative shadow-sm rounded-2xl">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-teal-600"></i>
-            <input
-                id="search"
-                type="text"
-                placeholder="Bạn muốn đi đâu, ăn gì?..."
-                class="w-full border-0 ring-1 ring-gray-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm transition-all"
-            />
+        <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-gray-600">
+          <a href="#explore" class="hover:text-forest-700 transition">Khám phá</a>
+          <a href="#map-section" class="hover:text-forest-700 transition">Bản đồ</a>
+          <a href="#places" class="hover:text-forest-700 transition">Địa điểm</a>
+        </nav>
+
+        <div class="flex items-center gap-2">
+          <a href="/contribute"
+             class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-forest-700 text-forest-700 font-bold text-sm hover:bg-forest-50 transition">
+            <i class="fa-solid fa-plus"></i>
+            Đóng góp
+          </a>
+          <a href="/admin" aria-label="Khu vực quản trị" title="Quản trị"
+             class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-forest-800 hover:text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-shield-halved"></i>
+          </a>
         </div>
+      </div>
     </div>
+  </header>
 
-    <div id="filters" class="flex gap-3 px-4 overflow-x-auto pb-4 pt-1 no-scrollbar items-center">
-    </div>
+  <main>
+    <!-- HERO -->
+    <section id="explore" class="px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7">
+      <div class="max-w-7xl mx-auto">
+        <div class="hero-bg min-h-[390px] sm:min-h-[470px] rounded-[28px] sm:rounded-[34px] overflow-hidden flex items-center relative">
+          <div class="relative z-10 max-w-2xl px-6 py-12 sm:px-12 sm:py-16 lg:px-16">
+            <div class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-white px-4 py-2 text-xs font-semibold mb-6">
+              <span class="w-2 h-2 rounded-full bg-lime-300"></span>
+              CẨM NANG DU LỊCH ĐỊA PHƯƠNG
+            </div>
 
-    <div class="px-4 mb-6">
-        <h2 class="text-base font-bold text-teal-800 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot text-teal-600"></i>
+            <h1 class="text-white text-4xl sm:text-5xl lg:text-[62px] font-extrabold leading-[1.1] tracking-tight">
+              Chạm vào thiên nhiên,
+              <span class="text-lime-200">cảm nhận Cần Giờ.</span>
+            </h1>
+
+            <p class="mt-5 text-white/85 text-sm sm:text-base leading-7 max-w-lg">
+              Tìm những điểm đến xanh, khám phá văn hóa bản địa
+              và thưởng thức hương vị đặc trưng của An Thới Đông.
+            </p>
+
+            <a href="#places"
+               class="inline-flex items-center gap-3 mt-8 bg-white text-forest-800 px-6 py-3.5 rounded-full font-extrabold text-sm hover:bg-lime-100 transition shadow-lg">
+              Khám phá ngay
+              <i class="fa-solid fa-arrow-down-long"></i>
+            </a>
+          </div>
+
+          <div class="absolute bottom-5 right-6 sm:right-10 text-white/70 text-xs hidden sm:flex items-center gap-2">
+            <i class="fa-solid fa-location-dot"></i>
+            An Thới Đông · Cần Giờ
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10">
+      <div class="bg-white rounded-2xl sm:rounded-full p-2 sm:pl-5 shadow-soft border border-gray-100 flex flex-col sm:flex-row gap-2">
+        <div class="flex items-center flex-1 min-w-0 px-3 sm:px-0">
+          <i class="fa-solid fa-magnifying-glass text-forest-600 text-lg"></i>
+          <input
+            id="search"
+            type="search"
+            autocomplete="off"
+            placeholder="Tìm địa điểm, món ngon, trải nghiệm..."
+            class="w-full min-w-0 bg-transparent border-0 outline-none focus:ring-0 px-3 py-3 text-sm"
+            aria-label="Tìm kiếm địa điểm">
+          <button id="clear-search" type="button" aria-label="Xóa từ khóa"
+                  class="hidden text-gray-400 hover:text-forest-700 px-2">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <button id="search-btn" type="button"
+                class="bg-forest-800 hover:bg-forest-700 text-white rounded-xl sm:rounded-full px-7 py-3 font-bold text-sm transition">
+          Tìm kiếm
+        </button>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="mt-6">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="font-extrabold text-forest-900 text-sm">Bạn muốn trải nghiệm gì?</h2>
+          <span class="text-xs text-gray-400 shrink-0">Chọn danh mục</span>
+        </div>
+        <div id="filters" class="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
+          <div class="skeleton h-10 w-28 rounded-full shrink-0"></div>
+          <div class="skeleton h-10 w-32 rounded-full shrink-0"></div>
+          <div class="skeleton h-10 w-28 rounded-full shrink-0"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP -->
+    <section id="map-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
+        <div>
+          <div class="text-xs font-bold tracking-[2px] text-clay uppercase mb-2">Explore locally</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-forest-900 tracking-tight">
             Khám phá trên bản đồ
-        </h2>
-        <div id="map" class="rounded-3xl overflow-hidden border border-gray-200 shadow-md h-[300px] z-10 relative bg-gray-100"></div>
-    </div>
-
-    <div class="px-4 mb-3 flex justify-between items-end">
-        <h2 class="text-base font-bold text-teal-800">Địa điểm gợi ý</h2>
-        <span id="result-count" class="text-xs text-gray-500 font-medium"></span>
-    </div>
-
-    <div id="content" class="px-4 grid gap-6">
-        <div id="loading" class="text-center py-10">
-            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-teal-600"></i>
-            <p class="text-gray-500 text-sm mt-3 font-medium">Đang chuẩn bị hành trang...</p>
+          </h2>
+          <p class="text-sm text-gray-500 mt-2">Tìm vị trí và lên kế hoạch cho chuyến đi của bạn.</p>
         </div>
+        <div class="inline-flex items-center gap-2 text-xs text-forest-700 font-semibold bg-forest-50 px-4 py-2.5 rounded-full self-start sm:self-auto">
+          <i class="fa-solid fa-map-location-dot"></i>
+          Bản đồ tương tác
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[24px] p-2.5 sm:p-3 shadow-soft border border-gray-100">
+        <div id="map" class="rounded-[18px] overflow-hidden bg-gray-100" aria-label="Bản đồ địa điểm du lịch"></div>
+      </div>
+      <p class="text-xs text-gray-400 mt-3 px-1">
+        <i class="fa-solid fa-circle-info mr-1"></i>
+        Chọn ghim trên bản đồ để xem tên địa điểm.
+      </p>
+    </section>
+
+    <!-- PLACES -->
+    <section id="places" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
+      <div class="flex items-end justify-between gap-4 mb-6">
+        <div>
+          <div class="text-xs font-bold tracking-[2px] text-clay uppercase mb-2">Curated for you</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-forest-900 tracking-tight">
+            Điểm đến nổi bật
+          </h2>
+          <p class="text-sm text-gray-500 mt-2">Những địa điểm đáng khám phá tại địa phương.</p>
+        </div>
+        <span id="result-count"
+              class="text-xs sm:text-sm font-bold text-forest-700 bg-forest-50 px-3.5 py-2 rounded-full whitespace-nowrap">
+          Đang tải...
+        </span>
+      </div>
+
+      <div id="content" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+        <div class="skeleton rounded-3xl h-80"></div>
+        <div class="skeleton rounded-3xl h-80 hidden sm:block"></div>
+        <div class="skeleton rounded-3xl h-80 hidden lg:block"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-forest-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div class="flex flex-col sm:flex-row justify-between gap-8">
+        <div>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+              <i class="fa-solid fa-leaf text-lime-200"></i>
+            </div>
+            <span class="font-extrabold text-lg">AN THỚI ĐÔNG GO</span>
+          </div>
+          <p class="mt-4 text-sm text-white/65 max-w-md leading-6">
+            Kết nối con người với thiên nhiên, văn hóa và những giá trị địa phương.
+            Cùng khám phá An Thới Đông theo cách riêng của bạn.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-3 text-sm text-white/75">
+          <a href="#explore" class="hover:text-lime-200 transition">Khám phá</a>
+          <a href="#map-section" class="hover:text-lime-200 transition">Bản đồ</a>
+          <a href="/contribute" class="hover:text-lime-200 transition">Đóng góp địa điểm</a>
+          <a href="/admin" class="hover:text-lime-200 transition">Quản trị</a>
+        </div>
+      </div>
+
+      <div class="border-t border-white/15 mt-8 pt-5 text-xs text-white/50 flex flex-col sm:flex-row justify-between gap-2">
+        <span>© <span id="year"></span> AN THỚI ĐÔNG GO.</span>
+        <span>Khám phá địa phương · Tôn trọng thiên nhiên</span>
+      </div>
     </div>
+  </footer>
 
-    <a href="/contribute" class="fixed bottom-6 right-6 bg-orange-500 text-white px-5 py-3 rounded-full shadow-lg hover:bg-orange-600 transition-transform transform hover:scale-105 z-50 flex items-center justify-center gap-2 font-bold text-sm border-2 border-white">
-        <i class="fa-solid fa-pen-to-square"></i> Đóng góp
-    </a>
+  <!-- MOBILE CONTRIBUTION BUTTON -->
+  <a href="/contribute"
+     class="sm:hidden fixed bottom-5 right-4 z-[1000] bg-clay hover:bg-orange-600 text-white rounded-full px-5 py-3.5 shadow-xl flex items-center gap-2 font-bold text-sm border border-white/30 transition">
+    <i class="fa-solid fa-pen-to-square"></i>
+    Đóng góp
+  </a>
 
-    <script>
-        const csvUrl = "/api/data";
-        let allData = [];
-        let categories = new Set();
-        let currentFilter = 'Tất cả';
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        let map, markersGroup;
+  <script>
+    const csvUrl = '/api/data';
 
-        // HÀM CHỌN ICON TỰ ĐỘNG CHO DANH MỤC
-        function getIconForCategory(catName) {
-            const name = catName.toLowerCase();
-            if (name.includes('ẩm thực') || name.includes('ăn uống') || name.includes('đặc sản')) return 'fa-utensils';
-            if (name.includes('du lịch') || name.includes('tham quan') || name.includes('check-in')) return 'fa-camera-retro';
-            if (name.includes('lưu trú') || name.includes('homestay') || name.includes('khách sạn')) return 'fa-bed';
-            if (name.includes('văn hóa') || name.includes('tâm linh') || name.includes('chùa')) return 'fa-vihara';
-            if (name.includes('hành chính') || name.includes('cơ quan')) return 'fa-building-flag';
-            if (name.includes('giáo dục') || name.includes('trường')) return 'fa-school';
-            if (name.includes('giao thông') || name.includes('bến')) return 'fa-ship';
-            return 'fa-location-dot';
+    let allData = [];
+    let categories = new Set();
+    let currentFilter = 'Tất cả';
+    let map;
+    let markersGroup;
+
+    const $ = id => document.getElementById(id);
+
+    // Escape dữ liệu trước khi đưa vào HTML.
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function getIconForCategory(category) {
+      const name = String(category || '').toLowerCase();
+
+      if (name.includes('ẩm thực') || name.includes('ăn uống') ||
+          name.includes('đặc sản')) return 'fa-utensils';
+
+      if (name.includes('du lịch') || name.includes('tham quan') ||
+          name.includes('check-in')) return 'fa-camera-retro';
+
+      if (name.includes('lưu trú') || name.includes('homestay') ||
+          name.includes('khách sạn')) return 'fa-bed';
+
+      if (name.includes('văn hóa') || name.includes('tâm linh') ||
+          name.includes('chùa')) return 'fa-landmark';
+
+      if (name.includes('hành chính') || name.includes('cơ quan'))
+        return 'fa-building';
+
+      if (name.includes('giáo dục') || name.includes('trường'))
+        return 'fa-school';
+
+      if (name.includes('giao thông') || name.includes('bến'))
+        return 'fa-ship';
+
+      return 'fa-location-dot';
+    }
+
+    // Đọc CSV có xử lý dấu phẩy và dấu ngoặc kép.
+    function parseCSVLine(line) {
+      const result = [];
+      let field = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(field.trim());
+          field = '';
+        } else {
+          field += char;
         }
+      }
 
-        // KHỞI TẠO BẢN ĐỒ
-        function initMap() {
-            map = L.map('map').setView([10.536, 106.825], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-            markersGroup = L.layerGroup().addTo(map);
+      result.push(field.trim());
+      return result;
+    }
+
+    // Hỗ trợ cả CSV có xuống dòng bên trong trường được đặt trong dấu ngoặc kép.
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '"') {
+          if (inQuotes && text[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          row.push(field.trim());
+          field = '';
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+          if (char === '\r' && text[i + 1] === '\n') i++;
+          row.push(field.trim());
+
+          if (row.some(cell => cell !== '')) rows.push(row);
+
+          row = [];
+          field = '';
+        } else {
+          field += char;
         }
+      }
 
-        function parseGPS(gpsStr) {
-            if (!gpsStr) return null;
-            const parts = gpsStr.split(',').map(p => parseFloat(p.trim()));
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return [parts[0], parts[1]];
-            return null;
-        }
+      if (field !== '' || row.length) {
+        row.push(field.trim());
+        rows.push(row);
+      }
 
-        function cleanCSVString(str) {
-            if (!str) return "";
-            return str.replace(/^"|"$/g, '').trim();
-        }
+      return rows;
+    }
 
-        // LOAD DATA
-        async function loadData() {
-            try {
-                initMap();
-                const res = await fetch(csvUrl);
-                const text = await res.text();
-                const rows = text.split("\n").slice(1);
+    function parseGPS(value) {
+      if (!value) return null;
 
-                rows.forEach(row => {
-                    if (!row.trim()) return;
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (cols.length < 6) return;
+      const parts = String(value).split(',').map(v => Number(v.trim()));
 
-                    const name = cleanCSVString(cols[0]);
-                    const type = cleanCSVString(cols[1]);
-                    const gps = cleanCSVString(cols[2]);
-                    const img = cleanCSVString(cols[3]);
-                    const desc = cleanCSVString(cols[4]);
-                    const phone = cleanCSVString(cols[5]);
+      if (parts.length !== 2 || !parts.every(Number.isFinite)) return null;
 
-                    if (type) categories.add(type);
-                    allData.push({ name, type, gps, img, desc, phone });
-                });
+      const [lat, lng] = parts;
 
-                document.getElementById('loading').style.display = 'none';
-                renderFilters();
-                render(allData);
-            } catch (error) {
-                document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Lỗi tải dữ liệu!</p>`;
-            }
-        }
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
 
-        // RENDER BỘ LỌC
-        function renderFilters() {
-            const div = document.getElementById("filters");
-            let html = createFilterBtn('Tất cả', 'fa-compass');
-            
-            categories.forEach(c => {
-                html += createFilterBtn(c, getIconForCategory(c));
-            });
-            div.innerHTML = html;
-        }
+      return [lat, lng];
+    }
 
-        function createFilterBtn(type, iconClass) {
-            const isActive = currentFilter === type;
-            const activeClasses = isActive 
-                ? "bg-teal-600 text-white shadow-md border-teal-600" 
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50";
-            
-            return `
-                <button onclick="applyFilter('${type}')"
-                class="flex items-center gap-2 border px-5 py-2 rounded-2xl text-sm font-semibold whitespace-nowrap transition-all ${activeClasses}">
-                    <i class="fa-solid ${iconClass}"></i> ${type}
-                </button>
-            `;
-        }
+    // Chỉ cho phép URL ảnh qua HTTP/HTTPS.
+    function safeImageURL(value) {
+      try {
+        const url = new URL(String(value || ''), window.location.origin);
 
-        function applyFilter(type) {
-            currentFilter = type;
-            renderFilters();
+        if (!['http:', 'https:'].includes(url.protocol)) return '';
 
-            const keyword = document.getElementById("search").value.toLowerCase();
-            let filteredData = allData;
+        return url.href;
+      } catch {
+        return '';
+      }
+    }
 
-            if (type !== 'Tất cả') filteredData = filteredData.filter(i => i.type === type);
-            if (keyword) {
-                filteredData = filteredData.filter(i =>
-                    i.name.toLowerCase().includes(keyword) || (i.desc && i.desc.toLowerCase().includes(keyword))
-                );
-            }
-            render(filteredData);
-        }
+    function createMap() {
+      map = L.map('map', {
+        scrollWheelZoom: false
+      }).setView([10.536, 106.825], 12);
 
-        document.getElementById("search").addEventListener("input", function () {
-            applyFilter(currentFilter);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      markersGroup = L.layerGroup().addTo(map);
+    }
+
+    function createFilterButton(category) {
+      const isAll = category === 'Tất cả';
+      const icon = isAll ? 'fa-compass' : getIconForCategory(category);
+      const active = currentFilter === category;
+
+      return `
+        <button type="button"
+          class="filter-btn ${active ? 'active' : ''}"
+          data-category="${escapeHTML(category)}"
+          aria-pressed="${active}">
+          <i class="fa-solid ${icon}"></i>
+          ${escapeHTML(category)}
+        </button>
+      `;
+    }
+
+    function renderFilters() {
+      $('filters').innerHTML = [
+        createFilterButton('Tất cả'),
+        ...Array.from(categories).map(createFilterButton)
+      ].join('');
+
+      $('filters').querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+          currentFilter = button.dataset.category;
+          renderFilters();
+          applyFilter();
+        });
+      });
+    }
+
+    function applyFilter() {
+      const keyword = $('search').value.trim().toLocaleLowerCase('vi');
+
+      const filtered = allData.filter(item => {
+        const categoryMatches =
+          currentFilter === 'Tất cả' || item.type === currentFilter;
+
+        const searchText = [
+          item.name, item.type, item.desc
+        ].join(' ').toLocaleLowerCase('vi');
+
+        return categoryMatches && (!keyword || searchText.includes(keyword));
+      });
+
+      renderPlaces(filtered);
+    }
+
+    function renderMap(items) {
+      markersGroup.clearLayers();
+
+      const bounds = [];
+
+      items.forEach(item => {
+        const coords = parseGPS(item.gps);
+        if (!coords) return;
+
+        bounds.push(coords);
+
+        const popup = `
+          <div>
+            <strong style="color:#214d3e;font-size:14px">
+              ${escapeHTML(item.name)}
+            </strong>
+            <div style="font-size:12px;color:#68736a;margin-top:4px">
+              <i class="fa-solid ${getIconForCategory(item.type)}"></i>
+              ${escapeHTML(item.type)}
+            </div>
+          </div>
+        `;
+
+        L.marker(coords)
+          .bindPopup(popup)
+          .addTo(markersGroup);
+      });
+
+      if (bounds.length === 1) {
+        map.setView(bounds[0], 15, { animate: true });
+      } else if (bounds.length > 1) {
+        map.fitBounds(L.latLngBounds(bounds), {
+          padding: [25, 25],
+          maxZoom: 14,
+          animate: true
+        });
+      }
+    }
+
+    function renderPlaces(items) {
+      $('result-count').textContent = `${items.length} địa điểm`;
+      renderMap(items);
+
+      if (!items.length) {
+        $('content').innerHTML = `
+          <div class="col-span-full bg-white border border-dashed border-gray-300 rounded-3xl p-10 sm:p-16 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-forest-50 text-forest-600 flex items-center justify-center mx-auto text-2xl mb-5">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <h3 class="text-lg font-extrabold text-forest-900">
+              Chưa tìm thấy địa điểm
+            </h3>
+            <p class="text-sm text-gray-500 mt-2">
+              Hãy thử từ khóa khác hoặc chọn danh mục Tất cả.
+            </p>
+            <button id="reset-search"
+              class="mt-5 rounded-full bg-forest-800 text-white px-5 py-3 text-sm font-bold">
+              Xem tất cả địa điểm
+            </button>
+          </div>
+        `;
+
+        $('reset-search').addEventListener('click', () => {
+          $('search').value = '';
+          currentFilter = 'Tất cả';
+          renderFilters();
+          applyFilter();
         });
 
-        // RENDER DANH SÁCH & MAP
-        function render(items) {
-            const container = document.getElementById("content");
-            document.getElementById("result-count").innerText = `${items.length} địa điểm`;
+        return;
+      }
 
-            markersGroup.clearLayers();
-            const validLatLngs = [];
+      $('content').innerHTML = items.map(item => {
+        const images = String(item.img || '')
+          .split('|')
+          .map(value => safeImageURL(value.trim()))
+          .filter(Boolean);
 
-            items.forEach(i => {
-                const coords = parseGPS(i.gps);
-                if (coords) {
-                    validLatLngs.push(coords);
-                    const marker = L.marker(coords).addTo(markersGroup);
-                    
-                    const popupContent = `
-                        <div class="text-center pb-1">
-                            <strong class="text-teal-700 text-sm block mb-1">${i.name}</strong>
-                            <span class="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold uppercase border border-teal-100">${i.type}</span>
-                        </div>
-                    `;
-                    marker.bindPopup(popupContent);
-                }
-            });
+        const mainImage = images.length
+          ? `<img src="${escapeHTML(images[0])}"
+                 alt="${escapeHTML(item.name)}"
+                 loading="lazy"
+                 referrerpolicy="no-referrer"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+             <div style="display:none"
+               class="absolute inset-0 items-center justify-center bg-forest-50 text-forest-500 text-4xl">
+               <i class="fa-solid fa-leaf"></i>
+             </div>`
+          : `<div class="w-full h-full flex items-center justify-center bg-forest-50 text-forest-500 text-4xl">
+               <i class="fa-solid fa-leaf"></i>
+             </div>`;
 
-            if (validLatLngs.length === 1) {
-                map.setView(validLatLngs[0], 16, { animate: true });
-            } else if (validLatLngs.length > 1) {
-                map.fitBounds(L.latLngBounds(validLatLngs), { padding: [30, 30], animate: true });
-            }
+        const gallery = images.length > 1
+          ? `<div class="flex gap-2 overflow-x-auto no-scrollbar mt-3">
+               ${images.slice(1, 6).map((url, index) => `
+                 <a href="${escapeHTML(url)}" target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Xem ảnh ${index + 2} của ${escapeHTML(item.name)}"
+                    class="block shrink-0">
+                   <img src="${escapeHTML(url)}"
+                     alt="${escapeHTML(item.name)}"
+                     loading="lazy"
+                     class="w-16 h-16 rounded-xl object-cover border border-gray-100">
+                 </a>
+               `).join('')}
+             </div>`
+          : '';
 
-            if (items.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-300">
-                        <i class="fa-solid fa-route text-4xl text-gray-300 mb-3"></i>
-                        <p class="text-gray-500 text-sm">Chưa tìm thấy địa điểm phù hợp.</p>
-                    </div>`;
-                return;
-            }
+        const coords = parseGPS(item.gps);
 
-            container.innerHTML = items.map(i => {
-                const mapLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(i.gps)}`;
-                const images = i.img ? i.img.split("|").map(img => img.trim()) : [];
-                
-                const mainImage = images.length > 0
-                    ? `<img src="${images[0]}" class="w-full h-52 object-cover" loading="lazy" alt="${i.name}">`
-                    : `<div class="w-full h-52 bg-teal-50 flex items-center justify-center text-teal-300"><i class="fa-solid fa-image text-4xl"></i></div>`;
+        const mapURL = coords
+          ? `https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name)}`;
 
-                const gallery = images.length > 1
-                    ? `<div class="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t border-gray-100">
-                        ${images.slice(1).map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-xl shadow-sm border border-gray-100" loading="lazy">`).join("")}
-                       </div>`
-                    : "";
+        const phone = String(item.phone || '').trim();
+        const phoneDigits = phone.replace(/[^\d+]/g, '');
+        const phoneValid = /^[+]?[\d]{7,15}$/.test(phoneDigits);
 
-                const phoneValid = (i.phone && !i.phone.toLowerCase().includes("không") && !i.phone.toLowerCase().includes("cập nhật"));
-                const phoneButton = phoneValid
-                    ? `<a href="tel:${i.phone.replace(/\s/g, '')}" class="flex-1 bg-orange-50 text-orange-600 border border-orange-200 text-center py-2.5 rounded-xl text-sm font-bold hover:bg-orange-100 transition shadow-sm">
-                        <i class="fa-solid fa-phone-volume mr-1"></i> Gọi ngay
-                       </a>`
-                    : "";
+        const phoneButton = phoneValid
+          ? `<a href="tel:${escapeHTML(phoneDigits)}"
+               class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-700 py-3 px-3 text-sm font-bold hover:bg-orange-100 transition">
+               <i class="fa-solid fa-phone"></i> Gọi điện
+             </a>`
+          : '';
 
-                return `
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                    <div class="relative">
-                        ${mainImage}
-                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-teal-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
-                            <i class="fa-solid ${getIconForCategory(i.type)}"></i> ${i.type}
-                        </div>
-                    </div>
-                    
-                    <div class="p-5 pb-3">
-                        <h3 class="text-lg font-bold text-gray-900 leading-tight">${i.name}</h3>
-                        <p class="text-sm text-gray-500 mt-2 line-clamp-3 leading-relaxed">${i.desc}</p>
-                    </div>
+        return `
+          <article class="place-card flex flex-col">
+            <div class="place-cover">
+              ${mainImage}
 
-                    ${gallery}
+              <div class="absolute top-3 left-3">
+                <span class="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm text-forest-800 px-3 py-2 rounded-full text-xs font-extrabold shadow-sm">
+                  <i class="fa-solid ${getIconForCategory(item.type)}"></i>
+                  ${escapeHTML(item.type || 'Địa điểm')}
+                </span>
+              </div>
 
-                    <div class="px-5 pb-5 flex gap-3 mt-1">
-                        <a href="${mapLink}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-teal-600 text-white text-center py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 transition shadow-sm">
-                            <i class="fa-solid fa-location-arrow mr-1"></i> Chỉ đường
-                        </a>
-                        ${phoneButton}
-                    </div>
-                </div>
-                `;
-            }).join("");
+              <div class="absolute bottom-3 left-3">
+                <span class="bg-black/40 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-[11px] font-semibold">
+                  <i class="fa-solid fa-location-dot mr-1"></i>
+                  An Thới Đông
+                </span>
+              </div>
+            </div>
+
+            <div class="p-5 flex flex-col flex-1">
+              <h3 class="font-extrabold text-lg text-forest-900 leading-snug">
+                ${escapeHTML(item.name || 'Địa điểm chưa có tên')}
+              </h3>
+
+              <p class="text-sm text-gray-500 leading-6 mt-2 line-clamp-3">
+                ${escapeHTML(item.desc || 'Thông tin địa điểm đang được cập nhật.')}
+              </p>
+
+              ${gallery}
+
+              <div class="flex gap-2.5 mt-auto pt-5">
+                <a href="${escapeHTML(mapURL)}"
+                   target="_blank" rel="noopener noreferrer"
+                   class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-forest-800 text-white py-3 px-3 text-sm font-bold hover:bg-forest-700 transition">
+                  <i class="fa-solid fa-diamond-turn-right"></i>
+                  Chỉ đường
+                </a>
+                ${phoneButton}
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function loadData() {
+      $('year').textContent = new Date().getFullYear();
+
+      try {
+        if (typeof L === 'undefined') {
+          throw new Error('Không tải được thư viện bản đồ Leaflet.');
         }
 
-        loadData();
-    </script>
+        createMap();
+
+        const response = await fetch(csvUrl, {
+          headers: { 'Accept': 'text/csv,text/plain,*/*' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Không thể tải dữ liệu (${response.status}).`);
+        }
+
+        const csvText = await response.text();
+        const rows = parseCSV(csvText);
+
+        if (!rows.length) {
+          throw new Error('Dữ liệu CSV đang trống.');
+        }
+
+        // Cấu trúc cũ: name, type, gps, img, desc, phone.
+        const header = rows[0].map(value =>
+          value.replace(/^\uFEFF/, '').trim().toLowerCase()
+        );
+
+        const hasHeader = header.some(value =>
+          ['name', 'ten', 'tên', 'type', 'loai', 'loại'].includes(value)
+        );
+
+        const dataRows = hasHeader ? rows.slice(1) : rows;
+
+        const getColumn = (row, names, fallback) => {
+          if (!hasHeader) return row[fallback] || '';
+
+          const index = header.findIndex(value => names.includes(value));
+          return index >= 0 ? (row[index] || '') : '';
+        };
+
+        allData = dataRows
+          .filter(row => row.some(value => value.trim() !== ''))
+          .map(row => ({
+            name: getColumn(row, ['name', 'ten', 'tên', 'title'], 0),
+            type: getColumn(row, ['type', 'loai', 'loại', 'category'], 1),
+            gps: getColumn(row, ['gps', 'coordinates', 'toa_do', 'tọa độ'], 2),
+            img: getColumn(row, ['img', 'image', 'images', 'anh', 'ảnh'], 3),
+            desc: getColumn(row, ['desc', 'description', 'mo_ta', 'mô tả'], 4),
+            phone: getColumn(row, ['phone', 'sdt', 'số điện thoại', 'telephone'], 5)
+          }))
+          .filter(item => item.name.trim() !== '')
+          .map(item => ({
+            name: item.name.trim(),
+            type: item.type.trim() || 'Khác',
+            gps: item.gps.trim(),
+            img: item.img.trim(),
+            desc: item.desc.trim(),
+            phone: item.phone.trim()
+          }));
+
+        categories = new Set(allData.map(item => item.type));
+
+        renderFilters();
+        applyFilter();
+
+      } catch (error) {
+        console.error('Lỗi tải dữ liệu:', error);
+
+        $('result-count').textContent = 'Chưa có dữ liệu';
+        $('content').innerHTML = `
+          <div class="col-span-full rounded-3xl bg-white border border-red-100 p-8 text-center">
+            <div class="text-red-500 text-3xl mb-3">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-extrabold text-gray-800">Không thể tải địa điểm</h3>
+            <p class="text-sm text-gray-500 mt-2">
+              Vui lòng kiểm tra API /api/data và kết nối mạng.
+            </p>
+            <button id="retry-load"
+              class="mt-5 bg-forest-800 text-white rounded-full px-5 py-3 text-sm font-bold">
+              Thử lại
+            </button>
+          </div>
+        `;
+
+        $('retry-load').addEventListener('click', () => {
+          $('content').innerHTML = '<div class="skeleton rounded-3xl h-80"></div>';
+          loadData();
+        });
+
+        $('filters').innerHTML = '';
+      }
+    }
+
+    $('search').addEventListener('input', () => {
+      $('clear-search').classList.toggle('hidden', !$('search').value);
+      applyFilter();
+    });
+
+    $('search-btn').addEventListener('click', () => {
+      applyFilter();
+      $('places').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    $('search').addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        applyFilter();
+        $('places').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    $('clear-search').addEventListener('click', () => {
+      $('search').value = '';
+      $('clear-search').classList.add('hidden');
+      applyFilter();
+      $('search').focus();
+    });
+
+    loadData();
+  </script>
 </body>
 </html>
